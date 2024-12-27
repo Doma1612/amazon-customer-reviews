@@ -1,30 +1,26 @@
 from src.core.data.data_loader import DataLoader
-from src.core.data.data_transformer import DataTransformer
-
+import joblib
 
 def main():
-    # Data pre-processing
-    reviews_file = "./data/raw/Musical_Instruments.jsonl.gz"
-    metadata_file = "./data/raw/meta_Musical_Instruments.jsonl.gz"
-    output_file_csv = "./data/raw/merged_reviews_metadata_renamed.csv"
+    
+    data_loader = DataLoader(reviews_file='', metadata_file='')
+    
+    try:
+        X, y, svd_embeddings = data_loader.load_processed_data(
+            X_path='data/processed/X_features_reduced.joblib', 
+            y_path='data/processed/y_target_reduced.joblib', 
+            svd_embeddings_path='data/processed/svd_embeddings_reduced.joblib'
+        )
+    except FileNotFoundError as e:
+        print(f"Fehler beim Laden der Datei: {e}")
+        return
+    except Exception as e:
+        print(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+        return
 
-    loader = DataLoader(reviews_file, metadata_file)
-    print("loader starts")
-    loader.load_data(sample_size=150000)
-    loader.drop_columns()
-
-    transformer = DataTransformer(loader.reviews_df, loader.metadata_df)
-    print("transformer starts")
-    transformer.handle_missing_values()
-    transformer.remove_duplicates()
-    merged_df = transformer.merge_and_rename()
-
-    # Save merged_df as csv
-    transformer.save_merged_data_csv(output_file_csv, sep=";")
-
-    print(merged_df.head())
-    print(merged_df.shape)
-
+    # DF zum weiterarbeiten 
+    print(f"Feature-Matrix X: {X.shape}")
+    print(f"Zielvariable y: {y.shape}")
 
 if __name__ == "__main__":
     main()
