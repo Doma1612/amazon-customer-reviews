@@ -1,5 +1,8 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import joblib
+from scipy import sparse
+from sentence_transformers import SentenceTransformer
 
 from src.utils.utils import get_dataframe
 
@@ -72,6 +75,34 @@ class DataLoader:
                 "verified_purchase",
             ]
         ]
+
+    def load_processed_data(self, 
+                            X_path='X_features_reduced.joblib', 
+                            y_path='y_target_reduced.joblib', 
+                            svd_embeddings_path='svd_embeddings_reduced.joblib'):
+        """
+        Load Feature, Target and SVD Model
+
+        Parameters:
+        - X_path (str): Path to Feature-Matrix.
+        - y_path (str): Path to Target.
+        - svd_embeddings_path (str): Path to Embedding SVD Modell.
+
+        Returns:
+        - X (scipy.sparse.csr_matrix): Feature-Matrix.
+        - y (numpy.ndarray): Target.
+        - svd_embeddings (TruncatedSVD): SVD Model for Embeddings.
+        """
+
+        X = joblib.load(X_path)
+        
+        y = joblib.load(y_path)
+        
+        svd_embeddings = joblib.load(svd_embeddings_path)
+        
+        print("Alle verarbeiteten Daten und Modelle wurden erfolgreich geladen.")
+        
+        return X, y, svd_embeddings
 
 
 # index label mapping in preprocessing? final data should contain that column
