@@ -43,7 +43,7 @@ class DataLoader:
         )
         return train, test
 
-    def load_data(self, sample_size: int = 400000) -> None:
+    def load_data(self, sample_size: int = 20000) -> None:
         self.reviews_df = pd.read_json(
             self.reviews_file, lines=True, compression="gzip"
         ).sample(n=sample_size, random_state=42)
@@ -60,7 +60,6 @@ class DataLoader:
                 "rating_number",
                 "store",
                 "parent_asin",
-                "bought_together",
             ]
         ]
         self.reviews_df = self.reviews_df[
@@ -71,7 +70,6 @@ class DataLoader:
                 "asin",
                 "parent_asin",
                 "user_id",
-                "helpful_vote",
                 "verified_purchase",
             ]
         ]
