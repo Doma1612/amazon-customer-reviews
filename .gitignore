@@ -2,3 +2,7 @@
 .DS_Store
 .idea
 __pycache__/
+
+# Too large for GitHub
+data/raw/Musical_Instruments.jsonl.gz
+data/raw/meta_Musical_Instruments.jsonl.gz
