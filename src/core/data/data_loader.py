@@ -74,10 +74,12 @@ class DataLoader:
             ]
         ]
 
-    def load_processed_data(self, 
-                            X_path='X_features_reduced.joblib', 
-                            y_path='y_target_reduced.joblib', 
-                            svd_embeddings_path='svd_embeddings_reduced.joblib'):
+    def load_processed_data(
+        self,
+        X_path="X_features_reduced.joblib",
+        y_path="y_target_reduced.joblib",
+        svd_embeddings_path="svd_embeddings_reduced.joblib",
+    ):
         """
         Load Feature, Target and SVD Model
 
@@ -93,13 +95,13 @@ class DataLoader:
         """
 
         X = joblib.load(X_path)
-        
+
         y = joblib.load(y_path)
-        
+
         svd_embeddings = joblib.load(svd_embeddings_path)
-        
+
         print("Alle verarbeiteten Daten und Modelle wurden erfolgreich geladen.")
-        
+
         return X, y, svd_embeddings
 
 
