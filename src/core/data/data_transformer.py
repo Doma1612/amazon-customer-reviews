@@ -19,10 +19,6 @@ import re
 
 
 class DataTransformer:
-    # lemmatizer = WordNetLemmatizer()
-    # stop_words = set(stopwords.words('english'))
-    # positive_words = set(opinion_lexicon.positive())
-    # negative_words = set(opinion_lexicon.negative())
 
     def __init__(self, reviews_df: pd.DataFrame, metadata_df: pd.DataFrame):
         self.reviews_df = reviews_df
@@ -32,21 +28,29 @@ class DataTransformer:
         self.X = None
         self.y = None
         # Initialise models
-        # self.scaler = StandardScaler()
-        # self.tfidf_vectorizer = TfidfVectorizer(max_features=500, ngram_range=(1, 2))
-        # self.svd_tfidf = TruncatedSVD(n_components=150, random_state=42)
-        # self.svd_embeddings = TruncatedSVD(n_components=150, random_state=42)
-        # self.embedding_model = SentenceTransformer('bert-base-nli-mean-tokens')
+        self.scaler = StandardScaler()
+        self.tfidf_vectorizer = TfidfVectorizer(max_features=500, ngram_range=(1, 2))
+        self.svd_tfidf = TruncatedSVD(n_components=150, random_state=42)
+        self.svd_embeddings = TruncatedSVD(n_components=150, random_state=42)
+        self.embedding_model = SentenceTransformer('bert-base-nli-mean-tokens')
 
-    def preprocess(self):
+        self.lemmatizer = WordNetLemmatizer()
+        self.stop_words = set(stopwords.words('english'))
+        self.positive_words = set(opinion_lexicon.positive())
+        self.negative_words = set(opinion_lexicon.negative())
+
+    def initial_transformations(self, output_file_path: str) -> None:
         self.handle_missing_values()
         self.remove_duplicates()
         self.merge_and_rename()
+        self.calculate_star_distribution()
+        self.save_merged_data_csv(output_file_path, sep=";")
+
+    def preprocess_features(self):
         self.lemmatize_reviews()
         self.create_full_review()
         self.calculate_text_features()
         self.calculate_sentiment_features()
-        self.log_transform_helpful_votes()
         self.handle_inf_nan_values()
         self.scale_numerical_features()
         self.vectorize_text()
@@ -54,6 +58,7 @@ class DataTransformer:
         self.reduce_dimensions()
         self.combine_features()
         self.prepare_target()
+
 
     def handle_missing_values(self) -> None:
         self.reviews_df = self.reviews_df.dropna(subset=["text"])
@@ -212,17 +217,6 @@ class DataTransformer:
         sentiment_counts.columns = ["positive_word_count", "negative_word_count"]
         self.merged_df = pd.concat([self.merged_df, sentiment_counts], axis=1)
 
-    def log_transform_helpful_votes(self):
-        # Falls 'helpful_votes' nicht vorhanden ist, überspringe diesen Schritt oder setze Standardwert
-        if "helpful_votes" in self.merged_df.columns:
-            self.merged_df["log_helpful_votes"] = np.log1p(
-                self.merged_df["helpful_votes"]
-            )
-        else:
-            self.merged_df["log_helpful_votes"] = (
-                0  # Oder ein anderer angemessener Wert
-            )
-
     def handle_inf_nan_values(self):
         numerical_features = [
             "word_count",
@@ -232,7 +226,6 @@ class DataTransformer:
             "negative_word_count",
             "product_average_rating",
             "product_rating_count",
-            "log_helpful_votes",
         ]
         # Ersetze Inf-Werte durch NaN
         self.merged_df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -252,7 +245,6 @@ class DataTransformer:
             "negative_word_count",
             "product_average_rating",
             "product_rating_count",
-            "log_helpful_votes",
         ]
         self.merged_df[numerical_features] = self.scaler.fit_transform(
             self.merged_df[numerical_features]
@@ -281,7 +273,7 @@ class DataTransformer:
         tfidf_reduced = self.svd_tfidf.fit_transform(self.tfidf_features)
         self.tfidf_reduced_sparse = sparse.csr_matrix(tfidf_reduced.astype(np.float32))
 
-    def combine_features(self):
+    def combine_features(self, reduce_dims=True):
         numerical_features = [
             "word_count",
             "char_count",
@@ -291,9 +283,7 @@ class DataTransformer:
             "product_average_rating",
             "product_rating_count",
         ]
-        numeric_features_values = self.merged_df[numerical_features].values.astype(
-            np.float32
-        )
+        numeric_features_values = self.merged_df[numerical_features].values.astype(np.float32)
         categorical_features = (
             self.merged_df["is_verified_purchase"]
             .astype(int)
@@ -303,15 +293,26 @@ class DataTransformer:
         # Konvertiere numerische und kategorische Features in Sparse-Matrizen
         numeric_sparse = sparse.csr_matrix(numeric_features_values)
         categorical_sparse = sparse.csr_matrix(categorical_features)
-        # Kombiniere alle Features
-        self.X = sparse.hstack(
-            [
-                self.tfidf_reduced_sparse,
-                self.embeddings_reduced_sparse,
-                numeric_sparse,
-                categorical_sparse,
-            ]
-        ).astype(np.float32)
+        
+        if reduce_dims:
+            self.X = sparse.hstack(
+                [
+                    self.tfidf_reduced_sparse,
+                    self.embeddings_reduced_sparse,
+                    numeric_sparse,
+                    categorical_sparse,
+                ]
+            ).astype(np.float32)
+        else:
+            self.X = sparse.hstack(
+                [
+                    self.tfidf_features,
+                    self.embeddings_sparse,
+                    numeric_sparse,
+                    categorical_sparse,
+                ]
+            ).astype(np.float32)
+
 
     def prepare_target(self):
         self.y = self.merged_df["review_rating"].astype(np.int32).values
