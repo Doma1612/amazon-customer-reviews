@@ -95,7 +95,7 @@ def log_reg_classification():
     }
 
     # Initialize the Logistic Regression model
-    logreg = LogisticRegression(random_state=42)
+    logreg = LogisticRegression(random_state=42, max_iter=1000)
 
     # Initialize GridSearchCV
     grid_search = GridSearchCV(estimator=logreg, param_grid=param_grid, cv=5, scoring='accuracy', verbose=1)
@@ -191,7 +191,7 @@ def rf_classification():
     return test_accuracy, evaluation_report
 
 def main():
-    log_reg_classification()
+    #log_reg_classification()
     rf_classification()
     svm_classification()
 
